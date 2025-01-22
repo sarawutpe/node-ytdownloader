@@ -7,7 +7,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +25,14 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+app.get("/", (req, res) => {
+  res.send("Express");
+});
+
+app.get("/ping", (req, res) => {
+  res.status(200).json({ status: true, data: "Server is ready!" });
 });
 
 app.post("/metadata", async (req, res) => {
