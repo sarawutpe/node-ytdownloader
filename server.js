@@ -3,6 +3,7 @@ const ytdl = require("@distube/ytdl-core");
 const cors = require("cors");
 const ffmpeg = require("fluent-ffmpeg");
 const dotenv = require("dotenv");
+const { google } = require("googleapis");
 
 dotenv.config();
 
@@ -32,6 +33,53 @@ app.get("/", (req, res) => {
   res.send("Express");
 });
 
+const extractVideoId = (url) => {
+  const regex = /(?:https?:\/\/(?:www\.)?youtube\.com(?:\/(?:[^\/\n\s]+\/\S+|\S+))?(?:\/\S+)?(?:[?&]v=)([a-zA-Z0-9_-]{11}))/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+app.post("/metadata", middleware, async (req, res) => {
+  const { url } = req.body;
+
+  // Extract the video ID from the URL
+  const videoId = extractVideoId(url);
+
+  if (!videoId) {
+    return res.status(400).send("Invalid YouTube URL");
+  }
+
+  try {
+    const youtube = google.youtube({
+      version: "v3",
+      auth: process.env.GOOGLE_API_KEY,
+    });
+
+    // Fetch video metadata
+    const response = await youtube.videos.list({
+      part: 'snippet,contentDetails,statistics',
+      id: videoId,
+    });
+
+    const video = response.data.items[0];
+
+    if (!video) {
+      return res.status(404).send("Video not found");
+    }
+
+    console.log(response.data);
+
+    res.json({
+      title: video.snippet.title,
+      description: video.snippet.description,
+      viewCount: video.statistics.viewCount,
+      more: video
+    });
+  } catch (error) {
+    console.error("Error fetching video data:", error);
+    res.status(500).send("An error occurred while fetching video data");
+  }
+});
 app.get("/ping", (req, res) => {
   res.status(200).json({
     status: true,
@@ -42,12 +90,14 @@ app.get("/ping", (req, res) => {
   });
 });
 
-app.post("/metadata", middleware, async (req, res) => {
+app.post("/metadatas", middleware, async (req, res) => {
   try {
     const { url } = req.body;
     const params = new URL(url).searchParams;
     const v = params.get("v");
     const newUrl = `https://www.youtube.com/watch?v=${v}`;
+
+    console.log(req.headers.cookie);
     // const cookies = req.headers.cookie;
     // if (!cookies) {
     //   return res.status(400).json({ status: false, error: "Cookies are required for authentication." });
