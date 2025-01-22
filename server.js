@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => {
+const middleware = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Unauthorized: Bearer token missing or invalid" });
@@ -25,17 +25,23 @@ app.use((req, res, next) => {
   }
 
   next();
-});
+};
 
 app.get("/", (req, res) => {
   res.send("Express");
 });
 
 app.get("/ping", (req, res) => {
-  res.status(200).json({ status: true, data: "Server is ready!" });
+  res.status(200).json({
+    status: true,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    environment: process.env.NODE_ENV || "development",
+  });
 });
 
-app.post("/metadata", async (req, res) => {
+app.post("/metadata", middleware, async (req, res) => {
   const { url } = req.body;
   const params = new URL(url).searchParams;
   const v = params.get("v");
@@ -44,7 +50,7 @@ app.post("/metadata", async (req, res) => {
   res.status(200).json({ status: true, data: info.videoDetails });
 });
 
-app.post("/download", async (req, res) => {
+app.post("/download", middleware, async (req, res) => {
   const { url } = req.body;
 
   // Check if URL is validç
