@@ -48,13 +48,13 @@ app.post("/metadata", middleware, async (req, res) => {
     const params = new URL(url).searchParams;
     const v = params.get("v");
     const newUrl = `https://www.youtube.com/watch?v=${v}`;
-    const cookies = req.headers.cookie;
-    if (!cookies) {
-      return res.status(400).json({ status: false, error: "Cookies are required for authentication." });
-    }
-    const agentOptions = {};
-    const agent = ytdl.createAgent(cookies, agentOptions);
-    const info = await ytdl.getBasicInfo(newUrl, { agent });
+    // const cookies = req.headers.cookie;
+    // if (!cookies) {
+    //   return res.status(400).json({ status: false, error: "Cookies are required for authentication." });
+    // }
+    // const agentOptions = {};
+    // const agent = ytdl.createAgent(cookies, agentOptions);
+    const info = await ytdl.getBasicInfo(newUrl);
     res.status(200).json({ status: true, data: info.videoDetails });
   } catch (error) {
     console.error(error);
